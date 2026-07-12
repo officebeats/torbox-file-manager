@@ -1140,7 +1140,7 @@ function App() {
                       <div style={{ fontSize: '0.95rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '6px' }}>
                         {item.name}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div className="file-meta" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <span>{formatBytes(item.size)}</span>
                         {isMultiFile && (
                           <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>({item.files.length} files)</span>
@@ -1219,11 +1219,12 @@ function App() {
                               }
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                               <line x1="2" y1="10" x2="22" y2="10" />
                               <polygon points="10 11 15 13 10 15 10 11" fill="currentColor" />
                             </svg>
+                            Stream
                           </button>
                         )}
 
@@ -1242,11 +1243,12 @@ function App() {
                             }
                           }}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
                           </svg>
+                          Download
                         </button>
 
                         {showZip && (
@@ -1261,10 +1263,11 @@ function App() {
                               }
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                               <text x="12" y="16" fontSize="6.5" fontWeight="bold" fill="currentColor" stroke="none" textAnchor="middle">ZIP</text>
                             </svg>
+                            ZIP
                           </button>
                         )}
 
@@ -1287,12 +1290,13 @@ function App() {
                             }
                           }}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                             <line x1="12" y1="15" x2="19" y2="15" />
                             <line x1="15" y1="12" x2="15" y2="19" />
                           </svg>
+                          Copy Link
                         </button>
 
                         {item.type === 'file' && (
@@ -1303,11 +1307,12 @@ function App() {
                               window.open(`https://api.torbox.app/v1/api/torrents/exportdata?token=${apiKey}&torrent_id=${parentTorrentId}&type=torrent`, '_blank')
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" />
                               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                               <path d="M2 12h20" />
                             </svg>
+                            Torrent
                           </button>
                         )}
 
@@ -1319,11 +1324,12 @@ function App() {
                               window.open('https://torbox.app/dashboard', '_blank')
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" strokeDasharray="3 3" />
                               <polyline points="16 12 12 8 8 12" />
                               <line x1="12" y1="8" x2="12" y2="16" />
                             </svg>
+                            Cloud
                           </button>
                         )}
                       </div>
