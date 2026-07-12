@@ -2,7 +2,7 @@
   "name": "file-manager-for-torbox",
   "private": true,
   "version": "0.1.1",
-  "description": "An elegant, unofficial extension that adds folders, subfolders, custom tags, and streaming quick-actions to organize your TorBox downloads.",
+  "description": "An elegant, unofficial extension with folders, tags, and streaming quick-actions to organize your TorBox downloads.",
   "type": "module",
   "scripts": {
     "dev": "vite",
