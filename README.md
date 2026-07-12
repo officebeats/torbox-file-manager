@@ -1,4 +1,4 @@
-# 📁 TorBox File Manager
+# 📁 File Manager for TorBox (Unofficial)
 
 An elegant, open-source browser extension that adds a robust Virtual File System (VFS) layer with folders, subfolders, custom tags, and context-aware action sets directly on top of the **TorBox API**.
 
