@@ -1341,39 +1341,6 @@ function App() {
                           Copy Link
                         </button>
 
-                        {item.type === 'file' && (
-                          <button 
-                            className="action-btn"
-                            title="Download Original Torrent"
-                            onClick={() => {
-                              window.open(`https://api.torbox.app/v1/api/torrents/exportdata?token=${apiKey}&torrent_id=${parentTorrentId}&type=torrent`, '_blank')
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                              <path d="M2 12h20" />
-                            </svg>
-                            Torrent
-                          </button>
-                        )}
-
-                        {item.type === 'file' && (
-                          <button 
-                            className="action-btn"
-                            title="Send to Cloud Integration"
-                            onClick={() => {
-                              window.open('https://torbox.app/dashboard', '_blank')
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" strokeDasharray="3 3" />
-                              <polyline points="16 12 12 8 8 12" />
-                              <line x1="12" y1="8" x2="12" y2="16" />
-                            </svg>
-                            Cloud
-                          </button>
-                        )}
                       </div>
                     </div>
                     
