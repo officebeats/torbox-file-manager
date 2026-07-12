@@ -67,6 +67,15 @@ function App() {
   
   const ghostRef = useRef(null)
 
+  const [toasts, setToasts] = useState([])
+  const showToast = useCallback((message, type = 'success') => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 3000)
+  }, [])
+
   const { 
     vfs, 
     isLoaded: vfsLoaded, 
@@ -130,6 +139,50 @@ function App() {
     if (hasKey && apiKey) loadTorrents()
   }, [hasKey, apiKey, loadTorrents])
 
+  // FAANG Keyboard Navigation & Accessibility shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 1. Close drawers, menus, and modals on Escape
+      if (e.key === 'Escape') {
+        setDeleteConfirmTarget(null)
+        setShowBatchDeleteModal(false)
+        setActiveDetailItem(null)
+        setContextMenu({ visible: false, x: 0, y: 0, target: null })
+        setActiveInlineMenu(null)
+      }
+      
+      // 2. Select All (Ctrl+A)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        const target = e.target.tagName.toLowerCase()
+        if (target !== 'input' && target !== 'textarea') {
+          e.preventDefault()
+          const allIds = displayedFiles.map(f => f.id)
+          setSelectedItems(new Set(allIds))
+          showToast(`Selected all ${allIds.length} files`, 'success')
+        }
+      }
+      
+      // 3. Delete Selected / Active details on Backspace or Delete keys
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const target = e.target.tagName.toLowerCase()
+        if (target !== 'input' && target !== 'textarea') {
+          if (selectedItems.size > 0) {
+            e.preventDefault()
+            setDeleteVfsOnly(false)
+            setShowBatchDeleteModal(true)
+          } else if (activeDetailItem) {
+            e.preventDefault()
+            setDeleteConfirmTarget(activeDetailItem)
+            setDeleteVfsOnly(false)
+          }
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [displayedFiles, selectedItems, activeDetailItem, showToast])
+
   // Unified selections listener for side-drawer details
   useEffect(() => {
     if (selectedItems.size === 1) {
@@ -172,7 +225,7 @@ function App() {
       await controlTorrent(apiKey, torrentId, 'pause')
       await loadTorrents()
     } catch (err) {
-      alert('Failed to pause torrent: ' + err.message)
+      showToast('Failed to pause torrent: ' + err.message, 'error')
     } finally {
       setIsControlLoading(false)
     }
@@ -184,7 +237,7 @@ function App() {
       await controlTorrent(apiKey, torrentId, 'resume')
       await loadTorrents()
     } catch (err) {
-      alert('Failed to resume torrent: ' + err.message)
+      showToast('Failed to resume torrent: ' + err.message, 'error')
     } finally {
       setIsControlLoading(false)
     }
@@ -194,9 +247,9 @@ function App() {
     setIsControlLoading(true)
     try {
       await controlTorrent(apiKey, torrentId, 'reannounce')
-      alert('Reannounced successfully!')
+      showToast('Reannounced successfully!', 'success')
     } catch (err) {
-      alert('Failed to reannounce: ' + err.message)
+      showToast('Failed to reannounce: ' + err.message, 'error')
     } finally {
       setIsControlLoading(false)
     }
@@ -215,7 +268,7 @@ function App() {
         setActiveDetailItem(null)
       }
     } catch (err) {
-      alert('Failed to delete torrent: ' + err.message)
+      showToast('Failed to delete torrent: ' + err.message, 'error')
     } finally {
       setIsControlLoading(false)
     }
@@ -237,9 +290,9 @@ function App() {
       await loadTorrents()
       setSelectedItems(new Set())
       setShowBatchDeleteModal(false)
-      alert(`Successfully deleted ${idsToDelete.length} item(s)!`)
+      showToast(`Successfully deleted ${idsToDelete.length} item(s, 'success')!`)
     } catch (err) {
-      alert('Failed to delete some items: ' + err.message)
+      showToast('Failed to delete some items: ' + err.message, 'error')
     } finally {
       setIsControlLoading(false)
     }
@@ -250,12 +303,12 @@ function App() {
       const magnetLink = await exportTorrentData(apiKey, torrentId, 'magnet')
       if (magnetLink) {
         await navigator.clipboard.writeText(magnetLink)
-        alert('Magnet link copied to clipboard!')
+        showToast('Magnet link copied to clipboard!', 'success')
       } else {
-        alert('Magnet link not found.')
+        showToast('Magnet link not found.', 'error')
       }
     } catch (err) {
-      alert('Failed to export magnet link: ' + err.message)
+      showToast('Failed to export magnet link: ' + err.message, 'error')
     }
   }
 
@@ -265,10 +318,10 @@ function App() {
       if (downloadUrl) {
         window.open(downloadUrl, '_blank')
       } else {
-        alert('Download URL not found in API response.')
+        showToast('Download URL not found in API response.', 'error')
       }
     } catch (err) {
-      alert('Failed to export .torrent file: ' + err.message)
+      showToast('Failed to export .torrent file: ' + err.message, 'error')
     }
   }
 
@@ -317,7 +370,7 @@ function App() {
       chrome.storage.sync.set({ torboxApiKey: apiKey.trim() }, () => {
         chrome.storage.local.set({ torboxApiKey: apiKey.trim() }, () => {
           setHasKey(true)
-          alert('API Key saved successfully!')
+          showToast('API Key saved successfully!', 'success')
           window.location.reload()
         })
       })
@@ -349,13 +402,13 @@ function App() {
         try {
           const parsed = JSON.parse(event.target.result);
           if (importVfsData(parsed)) {
-            alert('VFS backup imported successfully!');
+            showToast('VFS backup imported successfully!', 'success');
             window.location.reload();
           } else {
-            alert('Invalid backup file structure.');
+            showToast('Invalid backup file structure.', 'error');
           }
         } catch (err) {
-          alert('Failed to parse backup file: ' + err.message);
+          showToast('Failed to parse backup file: ' + err.message, 'error');
         }
       };
     }
@@ -1013,6 +1066,34 @@ function App() {
         </div>
 
         <div style={{ marginTop: 'auto', padding: '20px' }}>
+          {/* FAANG Storage Usage Widget */}
+          {hasKey && apiKey && torrents.length > 0 && (
+            <div className="sidebar-storage-widget" style={{ marginBottom: '20px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', justifycontent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
+                <span>TorBox Active Cache</span>
+                <span style={{ color: 'var(--accent-color)' }}>{formatBytes(torrents.reduce((acc, t) => acc + (t.size || 0), 0))}</span>
+              </div>
+              <div className="sidebar-storage-bar-bg" style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div 
+                  className="sidebar-storage-bar" 
+                  style={{ 
+                    height: '100%', 
+                    background: 'var(--accent-color)', 
+                    borderRadius: '2px',
+                    width: `${Math.min(100, (torrents.reduce((acc, t) => acc + (t.size || 0), 0) / (100 * 1024 * 1024 * 1024)) * 100)}%`, // Mock 100GB limit context
+                    boxShadow: '0 0 8px var(--accent-color)'
+                  }}
+                ></div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                <span>{torrents.length} items active</span>
+                {torrents.filter(t => t.download_state === 'downloading').length > 0 && (
+                  <span style={{ color: 'var(--accent-color)', animation: 'pulse 1.5s infinite' }}>⚡ {torrents.filter(t => t.download_state === 'downloading').length} downloading</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div 
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => navigateTo('settings')}
@@ -1546,7 +1627,7 @@ function App() {
                               } else {
                                 dlLink = `https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${item.id}&file_id=0&redirect=true`
                               }
-                              navigator.clipboard.writeText(dlLink).then(() => alert('Direct download link copied to clipboard!'))
+                              navigator.clipboard.writeText(dlLink).then(() => showToast('Direct download link copied to clipboard!', 'success'))
                             }
                           }}
                         >
@@ -1761,7 +1842,7 @@ function App() {
                           <span 
                             className="clickable-hash" 
                             title="Click to copy hash"
-                            onClick={() => navigator.clipboard.writeText(liveItem.hash).then(() => alert('Torrent hash copied!'))}
+                            onClick={() => navigator.clipboard.writeText(liveItem.hash).then(() => showToast('Torrent hash copied!', 'success'))}
                           >
                             {liveItem.hash ? `${liveItem.hash.slice(0, 12)}...` : 'N/A'}
                           </span>
@@ -1857,7 +1938,7 @@ function App() {
                       className="drawer-action-btn"
                       onClick={() => {
                         const dlLink = `https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${liveItem.torrentId}&file_id=${liveItem.id.split('_file_')[1]}&redirect=true`
-                        navigator.clipboard.writeText(dlLink).then(() => alert('Direct download link copied!'))
+                        navigator.clipboard.writeText(dlLink).then(() => showToast('Direct download link copied!', 'success'))
                       }}
                     >
                       🔗 Copy Direct Link
@@ -1956,6 +2037,15 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Toast notifications container */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast ${t.type}`}>
+            {t.type === 'success' ? '✓' : '✕'} {t.message}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
