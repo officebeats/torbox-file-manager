@@ -93,6 +93,16 @@ function App() {
           })
         }
       })
+    } else {
+      try {
+        const localKey = localStorage.getItem('torboxApiKey')
+        if (localKey) {
+          setApiKey(localKey)
+          setHasKey(true)
+        }
+      } catch (e) {
+        console.warn('localStorage read failed:', e)
+      }
     }
   }, [])
 
@@ -163,7 +173,11 @@ function App() {
         })
       })
     } else {
-      localStorage.setItem('torboxApiKey', apiKey.trim())
+      try {
+        localStorage.setItem('torboxApiKey', apiKey.trim())
+      } catch (e) {
+        console.warn('localStorage write failed:', e)
+      }
       setHasKey(true)
     }
   }
@@ -435,7 +449,35 @@ function App() {
   } 
   else if (activeTab.startsWith('tag_')) {
     const tagContents = getTagContents(activeTab)
-    displayedItems = torrents.filter(t => tagContents.includes(t.id.toString()) || tagContents.includes(t.id)).map(t => ({ ...t, type: 'file' }))
+    const taggedFiles = []
+    tagContents.forEach(itemId => {
+      const itemIdStr = itemId.toString()
+      if (itemIdStr.includes('_file_')) {
+        const [tId, fId] = itemIdStr.split('_file_')
+        const torrent = torrents.find(t => t.id.toString() === tId)
+        if (torrent && torrent.files) {
+          const file = torrent.files.find(f => f.id.toString() === fId)
+          if (file) {
+            taggedFiles.push({
+              id: itemIdStr,
+              torrentId: torrent.id,
+              fileId: file.id,
+              name: file.name,
+              size: file.size,
+              created_at: torrent.created_at,
+              download_state: torrent.download_state,
+              type: 'subfile'
+            })
+          }
+        }
+      } else {
+        const torrent = torrents.find(t => t.id.toString() === itemIdStr || t.id === parseInt(itemIdStr))
+        if (torrent) {
+          taggedFiles.push({ ...torrent, type: 'file' })
+        }
+      }
+    })
+    displayedItems = taggedFiles
   }
   else if (activeTab.startsWith('torrent_')) {
     const torrentId = activeTab.split('_')[1]
@@ -1140,7 +1182,7 @@ function App() {
                       <div style={{ fontSize: '0.95rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '6px' }}>
                         {item.name}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div className="file-meta" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <span>{formatBytes(item.size)}</span>
                         {isMultiFile && (
                           <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>({item.files.length} files)</span>
@@ -1219,11 +1261,12 @@ function App() {
                               }
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                               <line x1="2" y1="10" x2="22" y2="10" />
                               <polygon points="10 11 15 13 10 15 10 11" fill="currentColor" />
                             </svg>
+                            Stream
                           </button>
                         )}
 
@@ -1242,11 +1285,12 @@ function App() {
                             }
                           }}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
                           </svg>
+                          Download
                         </button>
 
                         {showZip && (
@@ -1261,10 +1305,11 @@ function App() {
                               }
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                               <text x="12" y="16" fontSize="6.5" fontWeight="bold" fill="currentColor" stroke="none" textAnchor="middle">ZIP</text>
                             </svg>
+                            ZIP
                           </button>
                         )}
 
@@ -1287,12 +1332,13 @@ function App() {
                             }
                           }}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                             <line x1="12" y1="15" x2="19" y2="15" />
                             <line x1="15" y1="12" x2="15" y2="19" />
                           </svg>
+                          Copy Link
                         </button>
 
                         {item.type === 'file' && (
@@ -1303,11 +1349,12 @@ function App() {
                               window.open(`https://api.torbox.app/v1/api/torrents/exportdata?token=${apiKey}&torrent_id=${parentTorrentId}&type=torrent`, '_blank')
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" />
                               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                               <path d="M2 12h20" />
                             </svg>
+                            Torrent
                           </button>
                         )}
 
@@ -1319,11 +1366,12 @@ function App() {
                               window.open('https://torbox.app/dashboard', '_blank')
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" strokeDasharray="3 3" />
                               <polyline points="16 12 12 8 8 12" />
                               <line x1="12" y1="8" x2="12" y2="16" />
                             </svg>
+                            Cloud
                           </button>
                         )}
                       </div>

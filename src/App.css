@@ -485,16 +485,20 @@
 
 /* Inline Move dropdown button on hover */
 .inline-actions {
-  display: flex;
+  display: none;
   gap: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
+  align-items: center;
   margin-left: 12px;
+  flex-shrink: 0;
 }
 
 .file-item:hover .inline-actions, .folder-item:hover .inline-actions,
 .inline-actions.active {
-  opacity: 1;
+  display: inline-flex;
+}
+
+.file-item:hover .file-meta {
+  display: none !important;
 }
 
 /* Tags */
@@ -564,20 +568,25 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 30px;
   border: 1px solid var(--border-color);
-  background: rgba(255,255,255,0.02);
+  background: rgba(255,255,255,0.04);
   color: var(--accent-color);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
 }
 
 .action-btn:hover {
-  background: rgba(0, 210, 135, 0.1);
+  background: var(--accent-color);
   border-color: var(--accent-color);
-  color: var(--accent-color);
+  color: #0e1111;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 210, 135, 0.25);
 }

@@ -22,22 +22,25 @@ This extension solves this problem by introducing a **fully local, zero-cost Vir
 ## ✨ Features
 
 ### 📁 Folders & Subfolders
-* Create directories, nested subfolders, and move entire folders with automatic circular nesting safety checks.
-* Full drag-and-drop file organization.
-* Double-click directories to open, and double-click files to trigger direct CDN downloads.
+Create directories, nested subfolders, and move entire folders with automatic circular nesting safety checks. Double-click directories to open, and double-click files to trigger direct CDN downloads.
+
+![Folders Sidebar Spotlight](docs/images/spotlight_folders.png)
 
 ### 🏷️ Custom Tags & Categories
-* Create custom categories and tags with randomly generated color badges.
-* Filter your entire catalog by tag categories with a single click.
+Create custom categories and tags with randomly generated color badges. Filter your entire catalog by tag categories with a single click.
 
-### 🎬 Context-Aware Quick Actions
-Hover over any file row to access contextual shortcuts matching TorBox's native action capabilities:
+![Tags Sidebar Spotlight](docs/images/spotlight_tags.png)
+
+### 🎬 Context-Aware Quick Actions (Legible & Labeled)
+Hover over any file row to access responsive contextual quick-actions:
 * **Stream Video (Play icon)**: Opens a video stream link directly in a new tab using the browser's native player (only shown for video files).
 * **Direct Download (Downward tray icon)**: Automatically requests a temporary CDN link and redirects to begin the download.
 * **Download as ZIP (Folder ZIP icon)**: Zips multi-file torrents and downloads the folder bundle (only shown for multi-file torrent folders).
 * **Copy Link (Chain link icon)**: Copies a permanent, redirecting CDN link to your clipboard.
 * **Download Torrent (Globe icon)**: Exports the original `.torrent` file.
 * **Cloud Export (Circle up icon)**: Quick shortcut to trigger external cloud uploads (Google Drive, OneDrive).
+
+To prevent clutter, file metadata is automatically faded out on hover, providing clean space for the larger, labeled buttons with zero visual clipping!
 
 ![Quick Actions on Hover](docs/images/manager_main_hover.png)
 
@@ -66,20 +69,31 @@ If you visit `https://torbox.app/dashboard`, the extension automatically injects
 
 ---
 
-## 🛠️ Development & Installation
+## 🛠️ Installation
 
-### Local Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/torbox-file-manager.git
-   cd torbox-file-manager
-   ```
-2. Install dependencies and build:
-   ```bash
-   npm install
-   npm run build
-   ```
-3. Load in your browser:
-   * Open your browser's extension management page (e.g., `chrome://extensions` or `opera://extensions`).
-   * Enable **Developer mode** in the top right.
-   * Click **Load unpacked** and select the generated `dist/` directory in this project root.
+### 📥 Simple Installation (For Non-Technical Users)
+1. Download the precompiled extension zip bundle: **`torbox-file-manager-alpha.zip`** from our [Latest Releases](https://github.com/officebeats/torbox-file-manager/releases).
+2. Extract the ZIP file to a permanent folder on your computer.
+3. Open your browser's extensions management page:
+   * **Chrome**: Visit `chrome://extensions`
+   * **Opera/Opera GX**: Visit `opera://extensions`
+4. Enable **Developer mode** (the toggle switch in the top-right corner of the page).
+5. Click the **Load unpacked** button in the top-left, and select the extracted folder containing the extension files.
+6. Click the extension icon in your browser to launch the TorBox Manager!
+
+---
+
+## 💻 Technical Setup & Collaboration
+For details on building from source, file architecture, and guidelines on how to contribute features or report bugs, please refer to our **[Contributing Guide](CONTRIBUTING.md)**.
+
+---
+
+## 👨‍💻 About the Project / Creator
+Hi! I'm a **Product Manager** who loves learning, exploring, and building with AI coding assistants on weekends. This extension was co-created using agentic AI models to build a premium, highly responsive user interface for debrid power users.
+
+* **Tech Founders**: If you are looking for a product counterpart, product coach, or co-founder to collaborate on a new project or take a product from 0 to 1, I'd love to chat!
+* **Product Managers**: If you are exploring AI workflows, seeking mentorship, or just want to swap ideas, feel free to connect!
+
+Let's connect:
+* 🌐 **LinkedIn**: [linkedin.com/in/productmg](https://www.linkedin.com/in/productmg/)
+* 🐦 **X / Twitter**: [@officebeats](https://x.com/officebeats)
