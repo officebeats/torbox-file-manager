@@ -290,7 +290,7 @@ function App() {
       await loadTorrents()
       setSelectedItems(new Set())
       setShowBatchDeleteModal(false)
-      showToast(`Successfully deleted ${idsToDelete.length} item(s, 'success')!`)
+      showToast(`Successfully deleted ${idsToDelete.length} item(s)!`, 'success')
     } catch (err) {
       showToast('Failed to delete some items: ' + err.message, 'error')
     } finally {
@@ -1069,7 +1069,7 @@ function App() {
           {/* FAANG Storage Usage Widget */}
           {hasKey && apiKey && torrents.length > 0 && (
             <div className="sidebar-storage-widget" style={{ marginBottom: '20px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', justifycontent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
                 <span>TorBox Active Cache</span>
                 <span style={{ color: 'var(--accent-color)' }}>{formatBytes(torrents.reduce((acc, t) => acc + (t.size || 0), 0))}</span>
               </div>
