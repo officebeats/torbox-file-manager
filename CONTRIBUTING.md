@@ -1,6 +1,6 @@
-# 🤝 Contributing to TorBox File Manager
+# 🤝 Contributing to File Manager for TorBox
 
-We love contributions! Whether you're a seasoned developer, a product peer, or a junior engineer, your help is welcome to make TorBox File Manager even better.
+We love contributions! Whether you're a seasoned developer, a product peer, or a junior engineer, your help is welcome to make File Manager for TorBox even better.
 
 ---
 

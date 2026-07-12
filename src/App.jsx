@@ -897,7 +897,7 @@ function App() {
       <aside className="sidebar" onClick={e => e.stopPropagation()}>
         <div className="sidebar-header">
           <div className="sidebar-logo">T</div>
-          <h1>TorBox Manager</h1>
+          <h1>File Manager for TorBox</h1>
         </div>
 
         <div className="sidebar-section">
