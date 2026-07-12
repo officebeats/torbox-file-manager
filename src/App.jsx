@@ -1382,7 +1382,12 @@ function App() {
                       onDrop={(e) => handleDropOnFolder(e, item.id)}
                       className={`folder-item ${dragOverFolder === item.id ? 'drag-over' : ''} ${activeInlineMenu === item.id ? 'active-menu-row' : ''}`}
                     >
-                      <svg style={{ color: 'var(--accent-color)', marginRight: '16px', flexShrink: 0 }} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg 
+                        style={{ color: 'var(--accent-color)', marginRight: '16px', flexShrink: 0, cursor: 'pointer' }} 
+                        onClick={(e) => { e.stopPropagation(); navigateTo(item.id); }}
+                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                        title="Click to Open Folder"
+                      >
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                       </svg>
                       <div style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
@@ -1391,6 +1396,14 @@ function App() {
 
                       {/* Inline Actions on Hover */}
                       <div className={`inline-actions ${activeInlineMenu === item.id ? 'active' : ''}`} onClick={e => e.stopPropagation()}>
+                        <button 
+                          className="btn"
+                          style={{ padding: '2px 8px', fontSize: '0.75rem', borderColor: 'rgba(0, 210, 135, 0.3)', color: 'var(--accent-color)' }}
+                          onClick={() => navigateTo(item.id)}
+                          title="Open Folder"
+                        >
+                          Open
+                        </button>
                         <div className="dropdown">
                           <button 
                             className="btn" 
@@ -1467,7 +1480,12 @@ function App() {
                     </label>
 
                     {isMultiFile ? (
-                      <svg style={{ opacity: isSelected ? 1 : 0.5, color: isSelected ? 'var(--accent-color)' : 'currentColor', marginRight: '16px', flexShrink: 0 }} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg 
+                        style={{ opacity: isSelected ? 1 : 0.5, color: isSelected ? 'var(--accent-color)' : 'currentColor', marginRight: '16px', flexShrink: 0, cursor: 'pointer' }} 
+                        onClick={(e) => { e.stopPropagation(); navigateTo(`torrent_${item.id}`); }}
+                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                        title="Click to Open Folder"
+                      >
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                         <line x1="8" y1="12" x2="16" y2="12" strokeWidth="1.5" stroke="currentColor" />
                         <line x1="8" y1="15" x2="14" y2="15" strokeWidth="1.5" stroke="currentColor" />
@@ -1523,6 +1541,17 @@ function App() {
                           title={`Auto-move to ${suggestion.name}`}
                         >
                           ✨ Suggest: {suggestion.name}
+                        </button>
+                      )}
+
+                      {isMultiFile && (
+                        <button 
+                          className="btn"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', borderColor: 'rgba(0, 210, 135, 0.3)', color: 'var(--accent-color)' }}
+                          onClick={() => navigateTo(`torrent_${item.id}`)}
+                          title="Open Torrent Folder"
+                        >
+                          Open
                         </button>
                       )}
 
