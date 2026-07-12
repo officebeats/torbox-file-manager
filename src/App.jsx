@@ -66,6 +66,7 @@ function App() {
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false)
   
   const ghostRef = useRef(null)
+  const displayedFilesRef = useRef([])
 
   const [toasts, setToasts] = useState([])
   const showToast = useCallback((message, type = 'success') => {
@@ -156,7 +157,7 @@ function App() {
         const target = e.target.tagName.toLowerCase()
         if (target !== 'input' && target !== 'textarea') {
           e.preventDefault()
-          const allIds = displayedFiles.map(f => f.id)
+          const allIds = displayedFilesRef.current.map(f => f.id)
           setSelectedItems(new Set(allIds))
           showToast(`Selected all ${allIds.length} files`, 'success')
         }
@@ -181,7 +182,7 @@ function App() {
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [displayedFiles, selectedItems, activeDetailItem, showToast])
+  }, [selectedItems, activeDetailItem, showToast])
 
   // Unified selections listener for side-drawer details
   useEffect(() => {
@@ -835,6 +836,7 @@ function App() {
   const totalSize = displayedItems.filter(i => i.type === 'file' || i.type === 'subfile').reduce((acc, f) => acc + (f.size || 0), 0)
 
   const displayedFiles = displayedItems.filter(i => i.type === 'file' || i.type === 'subfile')
+  displayedFilesRef.current = displayedFiles
   const allSelected = displayedFiles.length > 0 && selectedItems.size === displayedFiles.length
   const someSelected = selectedItems.size > 0 && selectedItems.size < displayedFiles.length
 
