@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
-import { fetchTorrents } from './api'
+import { fetchTorrents, controlTorrent, exportTorrentData } from './api'
 import { useVFS } from './useVFS'
 import { suggestFolder } from './utils'
 const formatBytes = (bytes) => {
@@ -57,6 +57,12 @@ function App() {
   const [showTagMenu, setShowTagMenu] = useState(false)
   const [activeInlineMenu, setActiveInlineMenu] = useState(null) // itemId for inline move
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, target: null })
+
+  // Details Drawer & API Control states
+  const [activeDetailItem, setActiveDetailItem] = useState(null)
+  const [isControlLoading, setIsControlLoading] = useState(false)
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState(null)
+  const [deleteVfsOnly, setDeleteVfsOnly] = useState(false)
   
   const ghostRef = useRef(null)
 
@@ -106,11 +112,7 @@ function App() {
     }
   }, [])
 
-  useEffect(() => {
-    if (hasKey && apiKey) loadTorrents()
-  }, [hasKey, apiKey])
-
-  const loadTorrents = async () => {
+  const loadTorrents = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -120,6 +122,128 @@ function App() {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }, [apiKey])
+
+  useEffect(() => {
+    if (hasKey && apiKey) loadTorrents()
+  }, [hasKey, apiKey, loadTorrents])
+
+  // Unified selections listener for side-drawer details
+  useEffect(() => {
+    if (selectedItems.size === 1) {
+      const selectedId = Array.from(selectedItems)[0]
+      const item = torrents.find(t => t.id === selectedId || t.id.toString() === selectedId)
+      if (item) {
+        setActiveDetailItem({ ...item, type: 'file' })
+      } else {
+        const folder = vfs.folders.find(f => f.id === selectedId)
+        if (folder) {
+          setActiveDetailItem({ ...folder, type: 'folder' })
+        } else {
+          if (selectedId.includes('_file_')) {
+            const [tId, fId] = selectedId.split('_file_')
+            const torrent = torrents.find(t => t.id.toString() === tId || t.id === parseInt(tId))
+            if (torrent && torrent.files) {
+              const subfile = torrent.files.find(f => f.id.toString() === fId || f.id === parseInt(fId))
+              if (subfile) {
+                setActiveDetailItem({ 
+                  ...subfile, 
+                  id: selectedId,
+                  type: 'subfile', 
+                  torrentId: torrent.id,
+                  download_state: torrent.download_state,
+                  isCompleted: torrent.download_state === 'completed'
+                })
+              }
+            }
+          }
+        }
+      }
+    } else {
+      setActiveDetailItem(null)
+    }
+  }, [selectedItems, torrents, vfs.folders])
+
+  const handlePauseTorrent = async (torrentId) => {
+    setIsControlLoading(true)
+    try {
+      await controlTorrent(apiKey, torrentId, 'pause')
+      await loadTorrents()
+    } catch (err) {
+      alert('Failed to pause torrent: ' + err.message)
+    } finally {
+      setIsControlLoading(false)
+    }
+  }
+
+  const handleResumeTorrent = async (torrentId) => {
+    setIsControlLoading(true)
+    try {
+      await controlTorrent(apiKey, torrentId, 'resume')
+      await loadTorrents()
+    } catch (err) {
+      alert('Failed to resume torrent: ' + err.message)
+    } finally {
+      setIsControlLoading(false)
+    }
+  }
+
+  const handleReannounceTorrent = async (torrentId) => {
+    setIsControlLoading(true)
+    try {
+      await controlTorrent(apiKey, torrentId, 'reannounce')
+      alert('Reannounced successfully!')
+    } catch (err) {
+      alert('Failed to reannounce: ' + err.message)
+    } finally {
+      setIsControlLoading(false)
+    }
+  }
+
+  const handleDeleteTorrent = async (torrentId, deleteFromCloud = false) => {
+    setIsControlLoading(true)
+    try {
+      if (deleteFromCloud) {
+        await controlTorrent(apiKey, torrentId, 'delete')
+      }
+      moveItemToFolder(torrentId.toString(), 'root')
+      await loadTorrents()
+      setDeleteConfirmTarget(null)
+      if (activeDetailItem && activeDetailItem.id === torrentId) {
+        setActiveDetailItem(null)
+      }
+    } catch (err) {
+      alert('Failed to delete torrent: ' + err.message)
+    } finally {
+      setIsControlLoading(false)
+    }
+  }
+
+  const handleCopyMagnet = async (torrentId) => {
+    try {
+      const magnetLink = await exportTorrentData(apiKey, torrentId, 'magnet')
+      if (magnetLink) {
+        await navigator.clipboard.writeText(magnetLink)
+        alert('Magnet link copied to clipboard!')
+      } else {
+        alert('Magnet link not found.')
+      }
+    } catch (err) {
+      alert('Failed to export magnet link: ' + err.message)
+    }
+  }
+
+  const handleDownloadTorrentFile = async (torrentId) => {
+    try {
+      const downloadUrl = await exportTorrentData(apiKey, torrentId, 'file')
+      if (downloadUrl) {
+        window.open(downloadUrl, '_blank')
+      } else {
+        alert('Download URL not found in API response.')
+      }
+    } catch (err) {
+      alert('Failed to export .torrent file: ' + err.message)
     }
   }
 
@@ -636,6 +760,36 @@ function App() {
   const allSelected = displayedFiles.length > 0 && selectedItems.size === displayedFiles.length
   const someSelected = selectedItems.size > 0 && selectedItems.size < displayedFiles.length
 
+  const getLiveDetailItem = () => {
+    if (!activeDetailItem) return null
+    if (activeDetailItem.type === 'file') {
+      return torrents.find(t => t.id === activeDetailItem.id) || activeDetailItem
+    }
+    if (activeDetailItem.type === 'folder') {
+      return vfs.folders.find(f => f.id === activeDetailItem.id) || activeDetailItem
+    }
+    if (activeDetailItem.type === 'subfile') {
+      const parentTorrent = torrents.find(t => t.id === activeDetailItem.torrentId)
+      if (parentTorrent && parentTorrent.files) {
+        const file = parentTorrent.files.find(f => `${parentTorrent.id}_file_${f.id}` === activeDetailItem.id)
+        if (file) {
+          return {
+            ...file,
+            id: activeDetailItem.id,
+            type: 'subfile',
+            torrentId: parentTorrent.id,
+            download_state: parentTorrent.download_state,
+            isCompleted: parentTorrent.download_state === 'completed'
+          }
+        }
+      }
+      return activeDetailItem
+    }
+    return activeDetailItem
+  }
+
+  const liveItem = getLiveDetailItem()
+
   return (
     <div className="app-container" onClick={clearSelections}>
       <div id="drag-ghost" ref={ghostRef}></div>
@@ -652,6 +806,37 @@ function App() {
               <div className="context-menu-item" onClick={() => { window.open('https://torbox.app/dashboard', '_blank'); clearSelections(); }}>
                 🌐 Open in TorBox
               </div>
+              
+              {/* TorBox control actions inside context menu */}
+              {!['completed', 'cached', 'seeding'].includes(contextMenu.target.download_state) && (
+                <>
+                  <div className="context-menu-separator"></div>
+                  {contextMenu.target.download_state === 'paused' ? (
+                    <div className="context-menu-item" onClick={() => { handleResumeTorrent(contextMenu.target.id); clearSelections(); }}>
+                      ▶ Resume Download
+                    </div>
+                  ) : (
+                    <div className="context-menu-item" onClick={() => { handlePauseTorrent(contextMenu.target.id); clearSelections(); }}>
+                      ⏸ Pause Download
+                    </div>
+                  )}
+                  <div className="context-menu-item" onClick={() => { handleReannounceTorrent(contextMenu.target.id); clearSelections(); }}>
+                    ⚡ Force Reannounce
+                  </div>
+                </>
+              )}
+              
+              <div className="context-menu-separator"></div>
+              <div className="context-menu-item" onClick={() => { handleCopyMagnet(contextMenu.target.id); clearSelections(); }}>
+                🔗 Copy Magnet Link
+              </div>
+              <div className="context-menu-item" onClick={() => { handleDownloadTorrentFile(contextMenu.target.id); clearSelections(); }}>
+                📄 Download .torrent
+              </div>
+              <div className="context-menu-item" style={{ color: 'var(--danger-color)' }} onClick={() => { setDeleteConfirmTarget(contextMenu.target); clearSelections(); }}>
+                🗑️ Delete Torrent...
+              </div>
+
               <div className="context-menu-separator"></div>
               <div style={{ padding: '4px 16px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Move To</div>
               <div className="context-menu-item" onClick={() => { moveItemToFolder(contextMenu.target.id, 'root'); clearSelections(); }}>
@@ -1365,6 +1550,325 @@ function App() {
           )}
         </div>
       </main>
+
+      {/* Live Selected Item Details Drawer */}
+      {liveItem && (
+        <aside className="detail-drawer" onClick={e => e.stopPropagation()}>
+          <div className="drawer-header">
+            <div className="drawer-title-container">
+              {liveItem.type === 'folder' ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              )}
+              <h2>{liveItem.name || liveItem.filename}</h2>
+            </div>
+            <button className="close-btn" onClick={() => setActiveDetailItem(null)}>✕</button>
+          </div>
+
+          <div className="drawer-content">
+            {liveItem.type === 'file' && (
+              <>
+                {/* Status Section */}
+                <div className="drawer-section">
+                  <div className="drawer-section-title">Status</div>
+                  <div className="drawer-status-container">
+                    <span className={`status-badge ${liveItem.download_state}`}>
+                      {liveItem.download_state}
+                    </span>
+                    {liveItem.download_state === 'downloading' && (
+                      <span className="drawer-speed">
+                        {formatBytes(liveItem.download_speed || 0)}/s
+                      </span>
+                    )}
+                  </div>
+                  {/* Progress Bar */}
+                  <div className="drawer-progress-container">
+                    <div className="drawer-progress-bg">
+                      <div 
+                        className={`drawer-progress-bar ${liveItem.download_state}`} 
+                        style={{ width: `${Math.round((liveItem.progress || 0) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="drawer-progress-text">
+                      {Math.round((liveItem.progress || 0) * 100)}% Complete
+                    </div>
+                  </div>
+                </div>
+
+                {/* API Action controls bar */}
+                <div className="drawer-section">
+                  <div className="drawer-section-title">API Actions</div>
+                  <div className="drawer-actions-grid">
+                    {!['completed', 'cached', 'seeding'].includes(liveItem.download_state) && (
+                      <>
+                        {liveItem.download_state === 'paused' ? (
+                          <button 
+                            className="drawer-action-btn" 
+                            disabled={isControlLoading}
+                            onClick={() => handleResumeTorrent(liveItem.id)}
+                          >
+                            ▶ Resume
+                          </button>
+                        ) : (
+                          <button 
+                            className="drawer-action-btn" 
+                            disabled={isControlLoading}
+                            onClick={() => handlePauseTorrent(liveItem.id)}
+                          >
+                            ⏸ Pause
+                          </button>
+                        )}
+                        <button 
+                          className="drawer-action-btn" 
+                          disabled={isControlLoading}
+                          onClick={() => handleReannounceTorrent(liveItem.id)}
+                        >
+                          ⚡ Reannounce
+                        </button>
+                      </>
+                    )}
+
+                    {['completed', 'cached', 'seeding'].includes(liveItem.download_state) && (
+                      <>
+                        <button 
+                          className="drawer-action-btn"
+                          onClick={() => window.open(`https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${liveItem.id}&file_id=0&redirect=true`, '_blank')}
+                        >
+                          📥 Download
+                        </button>
+                        {liveItem.files && liveItem.files.length > 1 && (
+                          <button 
+                            className="drawer-action-btn"
+                            onClick={() => window.open(`https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${liveItem.id}&zip_link=true&redirect=true`, '_blank')}
+                          >
+                            📦 Download ZIP
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    <button 
+                      className="drawer-action-btn"
+                      onClick={() => handleCopyMagnet(liveItem.id)}
+                    >
+                      🔗 Copy Magnet
+                    </button>
+
+                    <button 
+                      className="drawer-action-btn"
+                      onClick={() => handleDownloadTorrentFile(liveItem.id)}
+                    >
+                      📄 Download .torrent
+                    </button>
+
+                    <button 
+                      className="drawer-action-btn btn-danger"
+                      onClick={() => { setDeleteConfirmTarget(liveItem); setDeleteVfsOnly(false); }}
+                    >
+                      🗑️ Delete Torrent
+                    </button>
+                  </div>
+                </div>
+
+                {/* Info / Metadata Grid */}
+                <div className="drawer-section">
+                  <div className="drawer-section-title">Torrent Details</div>
+                  <table className="drawer-meta-table">
+                    <tbody>
+                      <tr>
+                        <td>Size</td>
+                        <td>{formatBytes(liveItem.size)}</td>
+                      </tr>
+                      <tr>
+                        <td>Files</td>
+                        <td>{liveItem.files ? liveItem.files.length : 1}</td>
+                      </tr>
+                      {liveItem.download_state === 'downloading' && (
+                        <>
+                          <tr>
+                            <td>Active Seeds</td>
+                            <td>{liveItem.seeds || 0}</td>
+                          </tr>
+                          <tr>
+                            <td>Active Peers</td>
+                            <td>{liveItem.peers || 0}</td>
+                          </tr>
+                        </>
+                      )}
+                      <tr>
+                        <td>Created At</td>
+                        <td>{formatDate(liveItem.created_at)}</td>
+                      </tr>
+                      <tr>
+                        <td>Hash Key</td>
+                        <td>
+                          <span 
+                            className="clickable-hash" 
+                            title="Click to copy hash"
+                            onClick={() => navigator.clipboard.writeText(liveItem.hash).then(() => alert('Torrent hash copied!'))}
+                          >
+                            {liveItem.hash ? `${liveItem.hash.slice(0, 12)}...` : 'N/A'}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {liveItem.type === 'folder' && (
+              <>
+                <div className="drawer-section">
+                  <div className="drawer-section-title">Folder Details</div>
+                  <table className="drawer-meta-table">
+                    <tbody>
+                      <tr>
+                        <td>Contents</td>
+                        <td>
+                          {getSubfolders(liveItem.id).length} subfolders, {getFolderContents(liveItem.id).length} items
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="drawer-section">
+                  <div className="drawer-section-title">Actions</div>
+                  <div className="drawer-actions-grid">
+                    <button 
+                      className="drawer-action-btn"
+                      onClick={() => {
+                        const newName = prompt('Enter new folder name:', liveItem.name)
+                        if (newName && newName.trim()) {
+                          renameFolder(liveItem.id, newName.trim())
+                        }
+                      }}
+                    >
+                      ✏️ Rename Folder
+                    </button>
+                    <button 
+                      className="drawer-action-btn btn-danger"
+                      onClick={() => { setDeleteConfirmTarget(liveItem); }}
+                    >
+                      🗑️ Delete Folder
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {liveItem.type === 'subfile' && (
+              <>
+                <div className="drawer-section">
+                  <div className="drawer-section-title">File Details</div>
+                  <table className="drawer-meta-table">
+                    <tbody>
+                      <tr>
+                        <td>Size</td>
+                        <td>{formatBytes(liveItem.size)}</td>
+                      </tr>
+                      <tr>
+                        <td>Path</td>
+                        <td>{liveItem.short_name || liveItem.filename}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="drawer-section">
+                  <div className="drawer-section-title">Actions</div>
+                  <div className="drawer-actions-grid">
+                    {liveItem.isCompleted && (
+                      <>
+                        {isVideo(liveItem.filename) && (
+                          <button 
+                            className="drawer-action-btn"
+                            onClick={() => window.open(`https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${liveItem.torrentId}&file_id=${liveItem.id.split('_file_')[1]}&redirect=true`, '_blank')}
+                          >
+                            📺 Stream Video
+                          </button>
+                        )}
+                        <button 
+                          className="drawer-action-btn"
+                          onClick={() => window.open(`https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${liveItem.torrentId}&file_id=${liveItem.id.split('_file_')[1]}&redirect=true`, '_blank')}
+                        >
+                          📥 Direct Download
+                        </button>
+                      </>
+                    )}
+                    <button 
+                      className="drawer-action-btn"
+                      onClick={() => {
+                        const dlLink = `https://api.torbox.app/v1/api/torrents/requestdl?token=${apiKey}&torrent_id=${liveItem.torrentId}&file_id=${liveItem.id.split('_file_')[1]}&redirect=true`
+                        navigator.clipboard.writeText(dlLink).then(() => alert('Direct download link copied!'))
+                      }}
+                    >
+                      🔗 Copy Direct Link
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* Delete Confirmation Modal Overlay */}
+      {deleteConfirmTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmTarget(null)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>Confirm Deletion</h3>
+            <p className="delete-warning-text">
+              Are you sure you want to remove <strong>{deleteConfirmTarget.name || deleteConfirmTarget.filename}</strong>?
+            </p>
+            
+            {deleteConfirmTarget.type === 'file' ? (
+              <>
+                <div className="modal-checkbox-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', marginBottom: '16px' }}>
+                  <label className="custom-checkbox">
+                    <input 
+                      type="checkbox" 
+                      checked={deleteVfsOnly} 
+                      onChange={(e) => setDeleteVfsOnly(e.target.checked)}
+                    />
+                    <span className="checkmark"></span>
+                  </label>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Remove folder mapping only (Keep files in TorBox Cloud)
+                  </span>
+                </div>
+                <div className="modal-actions">
+                  <button className="btn" onClick={() => setDeleteConfirmTarget(null)}>Cancel</button>
+                  <button 
+                    className="btn btn-danger" 
+                    disabled={isControlLoading}
+                    onClick={() => handleDeleteTorrent(deleteConfirmTarget.id, !deleteVfsOnly)}
+                  >
+                    {isControlLoading ? 'Deleting...' : 'Confirm Delete'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="modal-actions">
+                <button className="btn" onClick={() => setDeleteConfirmTarget(null)}>Cancel</button>
+                <button 
+                  className="btn btn-danger"
+                  onClick={() => { deleteFolder(deleteConfirmTarget.id); setDeleteConfirmTarget(null); }}
+                >
+                  Delete Folder
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
