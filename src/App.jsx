@@ -93,6 +93,12 @@ function App() {
           })
         }
       })
+    } else {
+      const localKey = localStorage.getItem('torboxApiKey')
+      if (localKey) {
+        setApiKey(localKey)
+        setHasKey(true)
+      }
     }
   }, [])
 
@@ -435,7 +441,35 @@ function App() {
   } 
   else if (activeTab.startsWith('tag_')) {
     const tagContents = getTagContents(activeTab)
-    displayedItems = torrents.filter(t => tagContents.includes(t.id.toString()) || tagContents.includes(t.id)).map(t => ({ ...t, type: 'file' }))
+    const taggedFiles = []
+    tagContents.forEach(itemId => {
+      const itemIdStr = itemId.toString()
+      if (itemIdStr.includes('_file_')) {
+        const [tId, fId] = itemIdStr.split('_file_')
+        const torrent = torrents.find(t => t.id.toString() === tId)
+        if (torrent && torrent.files) {
+          const file = torrent.files.find(f => f.id.toString() === fId)
+          if (file) {
+            taggedFiles.push({
+              id: itemIdStr,
+              torrentId: torrent.id,
+              fileId: file.id,
+              name: file.name,
+              size: file.size,
+              created_at: torrent.created_at,
+              download_state: torrent.download_state,
+              type: 'subfile'
+            })
+          }
+        }
+      } else {
+        const torrent = torrents.find(t => t.id.toString() === itemIdStr || t.id === parseInt(itemIdStr))
+        if (torrent) {
+          taggedFiles.push({ ...torrent, type: 'file' })
+        }
+      }
+    })
+    displayedItems = taggedFiles
   }
   else if (activeTab.startsWith('torrent_')) {
     const torrentId = activeTab.split('_')[1]

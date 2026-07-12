@@ -43,6 +43,19 @@ export function useVFS() {
         }
       });
     } else {
+      const localData = localStorage.getItem('vfsData');
+      if (localData) {
+        try {
+          const parsed = JSON.parse(localData);
+          setVfs({
+            folders: parsed.folders || initialState.folders,
+            tags: parsed.tags || initialState.tags,
+            itemMappings: parsed.itemMappings || initialState.itemMappings
+          });
+        } catch (e) {
+          console.error('Error parsing VFS localData:', e);
+        }
+      }
       setIsLoaded(true);
     }
   }, []);
@@ -56,6 +69,8 @@ export function useVFS() {
           chrome.storage.local.set({ vfsData: newVfs });
         }
       });
+    } else {
+      localStorage.setItem('vfsData', JSON.stringify(newVfs));
     }
   };
 
@@ -73,46 +88,70 @@ export function useVFS() {
 
   const createFolder = (name, parentId = 'root') => {
     const newFolder = { id: `folder_${Date.now()}`, name, parentId };
-    saveVfs({ ...vfs, folders: [...vfs.folders, newFolder] });
+    setVfs(prev => {
+      const next = { ...prev, folders: [...prev.folders, newFolder] };
+      saveVfs(next);
+      return next;
+    });
   };
 
   const renameFolder = (folderId, newName) => {
     if (folderId === 'root') return;
-    const newFolders = vfs.folders.map(f => f.id === folderId ? { ...f, name: newName } : f);
-    saveVfs({ ...vfs, folders: newFolders });
+    setVfs(prev => {
+      const next = { ...prev, folders: prev.folders.map(f => f.id === folderId ? { ...f, name: newName } : f) };
+      saveVfs(next);
+      return next;
+    });
   };
 
   const createTag = (name, color = '#ffffff') => {
     const newTag = { id: `tag_${Date.now()}`, name, color };
-    saveVfs({ ...vfs, tags: [...vfs.tags, newTag] });
+    setVfs(prev => {
+      const next = { ...prev, tags: [...prev.tags, newTag] };
+      saveVfs(next);
+      return next;
+    });
   };
 
   const moveItemToFolder = (itemId, folderId) => {
-    const newMappings = { ...vfs.itemMappings };
-    newMappings[itemId] = { 
-      ...(newMappings[itemId] || { tags: [] }), 
-      folderId,
-      placedAt: Date.now() // Track when it was placed here
-    };
-    saveVfs({ ...vfs, itemMappings: newMappings });
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      newMappings[itemId] = { 
+        ...(newMappings[itemId] || { tags: [] }), 
+        folderId,
+        placedAt: Date.now()
+      };
+      const next = { ...prev, itemMappings: newMappings };
+      saveVfs(next);
+      return next;
+    });
   };
 
   const addTagToItem = (itemId, tagId) => {
-    const newMappings = { ...vfs.itemMappings };
-    const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-    if (!itemData.tags.includes(tagId)) {
-      itemData.tags = [...itemData.tags, tagId];
-    }
-    newMappings[itemId] = itemData;
-    saveVfs({ ...vfs, itemMappings: newMappings });
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
+      if (!itemData.tags.includes(tagId)) {
+        itemData.tags = [...itemData.tags, tagId];
+      }
+      newMappings[itemId] = itemData;
+      const next = { ...prev, itemMappings: newMappings };
+      saveVfs(next);
+      return next;
+    });
   };
 
   const removeTagFromItem = (itemId, tagId) => {
-    const newMappings = { ...vfs.itemMappings };
-    if (newMappings[itemId]) {
-      newMappings[itemId].tags = newMappings[itemId].tags.filter(t => t !== tagId);
-      saveVfs({ ...vfs, itemMappings: newMappings });
-    }
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      if (newMappings[itemId]) {
+        newMappings[itemId].tags = newMappings[itemId].tags.filter(t => t !== tagId);
+        const next = { ...prev, itemMappings: newMappings };
+        saveVfs(next);
+        return next;
+      }
+      return prev;
+    });
   };
 
   const getFolderContents = (folderId) => {
@@ -134,39 +173,43 @@ export function useVFS() {
   const deleteFolder = (folderId) => {
     if (folderId === 'root') return;
     
-    const newMappings = { ...vfs.itemMappings };
-    Object.keys(newMappings).forEach(itemId => {
-      if (newMappings[itemId]?.folderId === folderId) {
-        newMappings[itemId].folderId = 'root';
-        newMappings[itemId].placedAt = Date.now();
-      }
-    });
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      Object.keys(newMappings).forEach(itemId => {
+        if (newMappings[itemId]?.folderId === folderId) {
+          newMappings[itemId] = { ...newMappings[itemId], folderId: 'root', placedAt: Date.now() };
+        }
+      });
 
-    const newFolders = vfs.folders.filter(f => f.id !== folderId);
-    newFolders.forEach(f => {
-      if (f.parentId === folderId) f.parentId = 'root';
-    });
+      const newFolders = prev.folders.filter(f => f.id !== folderId).map(f => {
+        if (f.parentId === folderId) {
+          return { ...f, parentId: 'root' };
+        }
+        return f;
+      });
 
-    saveVfs({ ...vfs, folders: newFolders, itemMappings: newMappings });
+      const next = { ...prev, folders: newFolders, itemMappings: newMappings };
+      saveVfs(next);
+      return next;
+    });
   };
 
   const createTagAndAddToItems = (name, color, itemIds) => {
     const tagId = `tag_${Date.now()}`;
     const newTag = { id: tagId, name, color };
     
-    const newMappings = { ...vfs.itemMappings };
-    itemIds.forEach(itemId => {
-      const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-      if (!itemData.tags.includes(tagId)) {
-        itemData.tags = [...itemData.tags, tagId];
-      }
-      newMappings[itemId] = itemData;
-    });
-
-    saveVfs({
-      ...vfs,
-      tags: [...vfs.tags, newTag],
-      itemMappings: newMappings
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      itemIds.forEach(itemId => {
+        const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
+        if (!itemData.tags.includes(tagId)) {
+          itemData.tags = [...itemData.tags, tagId];
+        }
+        newMappings[itemId] = itemData;
+      });
+      const next = { ...prev, tags: [...prev.tags, newTag], itemMappings: newMappings };
+      saveVfs(next);
+      return next;
     });
   };
 
@@ -184,39 +227,50 @@ export function useVFS() {
       currentId = f.parentId;
     }
 
-    const newFolders = vfs.folders.map(f => {
-      if (f.id === folderId) {
-        return { ...f, parentId: targetParentId };
-      }
-      return f;
+    setVfs(prev => {
+      const newFolders = prev.folders.map(f => {
+        if (f.id === folderId) {
+          return { ...f, parentId: targetParentId };
+        }
+        return f;
+      });
+      const next = { ...prev, folders: newFolders };
+      saveVfs(next);
+      return next;
     });
-
-    saveVfs({ ...vfs, folders: newFolders });
   };
 
   const moveItemsToFolders = (mappings) => {
-    const newMappings = { ...vfs.itemMappings };
-    Object.entries(mappings).forEach(([itemId, folderId]) => {
-      const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-      newMappings[itemId] = {
-        ...itemData,
-        folderId,
-        placedAt: Date.now()
-      };
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      Object.entries(mappings).forEach(([itemId, folderId]) => {
+        const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
+        newMappings[itemId] = {
+          ...itemData,
+          folderId,
+          placedAt: Date.now()
+        };
+      });
+      const next = { ...prev, itemMappings: newMappings };
+      saveVfs(next);
+      return next;
     });
-    saveVfs({ ...vfs, itemMappings: newMappings });
   };
 
   const addTagToItems = (itemIds, tagId) => {
-    const newMappings = { ...vfs.itemMappings };
-    itemIds.forEach(itemId => {
-      const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-      if (!itemData.tags.includes(tagId)) {
-        itemData.tags = [...itemData.tags, tagId];
-      }
-      newMappings[itemId] = itemData;
+    setVfs(prev => {
+      const newMappings = { ...prev.itemMappings };
+      itemIds.forEach(itemId => {
+        const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
+        if (!itemData.tags.includes(tagId)) {
+          itemData.tags = [...itemData.tags, tagId];
+        }
+        newMappings[itemId] = itemData;
+      });
+      const next = { ...prev, itemMappings: newMappings };
+      saveVfs(next);
+      return next;
     });
-    saveVfs({ ...vfs, itemMappings: newMappings });
   };
 
   return {

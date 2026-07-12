@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TorBox File Manager",
-  "version": "1.0.0",
-  "description": "Robust file manager for TorBox",
+  "version": "0.1.1",
+  "description": "An elegant Chrome extension that adds folders, subfolders, custom tags, and streaming quick-actions to organize your TorBox downloads.",
   "action": {
     "default_title": "Open File Manager"
   },

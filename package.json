@@ -1,7 +1,8 @@
 {
-  "name": "amazing-bell",
+  "name": "torbox-file-manager",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.1",
+  "description": "An elegant Chrome extension that adds folders, subfolders, custom tags, and streaming quick-actions to organize your TorBox downloads.",
   "type": "module",
   "scripts": {
     "dev": "vite",
