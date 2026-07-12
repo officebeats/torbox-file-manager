@@ -591,6 +591,17 @@
   box-shadow: 0 4px 12px rgba(0, 210, 135, 0.25);
 }
 
+.action-btn.btn-danger {
+  color: var(--danger-color);
+}
+
+.action-btn.btn-danger:hover {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.25);
+}
+
 /* Detail Drawer Styles */
 .detail-drawer {
   width: 360px;

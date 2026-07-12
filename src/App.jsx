@@ -63,6 +63,7 @@ function App() {
   const [isControlLoading, setIsControlLoading] = useState(false)
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState(null)
   const [deleteVfsOnly, setDeleteVfsOnly] = useState(false)
+  const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false)
   
   const ghostRef = useRef(null)
 
@@ -215,6 +216,30 @@ function App() {
       }
     } catch (err) {
       alert('Failed to delete torrent: ' + err.message)
+    } finally {
+      setIsControlLoading(false)
+    }
+  }
+
+  const handleBatchDelete = async (deleteFromCloud = false) => {
+    setIsControlLoading(true)
+    try {
+      const idsToDelete = Array.from(selectedItems)
+      for (const id of idsToDelete) {
+        if (deleteFromCloud) {
+          const item = torrents.find(t => t.id === id || t.id.toString() === id)
+          if (item) {
+            await controlTorrent(apiKey, item.id, 'delete')
+          }
+        }
+        moveItemToFolder(id.toString(), 'root')
+      }
+      await loadTorrents()
+      setSelectedItems(new Set())
+      setShowBatchDeleteModal(false)
+      alert(`Successfully deleted ${idsToDelete.length} item(s)!`)
+    } catch (err) {
+      alert('Failed to delete some items: ' + err.message)
     } finally {
       setIsControlLoading(false)
     }
@@ -1098,6 +1123,14 @@ function App() {
                     </div>
                   )}
                 </div>
+
+                <button 
+                  className="btn" 
+                  style={{ padding: '4px 12px', fontSize: '0.8rem', color: 'var(--danger-color)', borderColor: 'rgba(255, 71, 87, 0.3)' }} 
+                  onClick={(e) => { e.stopPropagation(); setDeleteVfsOnly(false); setShowBatchDeleteModal(true); }}
+                >
+                  ✕ Delete Selected
+                </button>
               </div>
             )}
 
@@ -1526,6 +1559,23 @@ function App() {
                           Copy Link
                         </button>
 
+                        <button 
+                          className="action-btn btn-danger"
+                          title="Delete Item"
+                          onClick={() => {
+                            setDeleteConfirmTarget(item);
+                            setDeleteVfsOnly(false);
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
+                          Delete
+                        </button>
+
                       </div>
                     </div>
                     
@@ -1866,6 +1916,43 @@ function App() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Batch Delete Confirmation Modal Overlay */}
+      {showBatchDeleteModal && (
+        <div className="modal-overlay" onClick={() => setShowBatchDeleteModal(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>Confirm Batch Deletion</h3>
+            <p className="delete-warning-text">
+              Are you sure you want to remove the <strong>{selectedItems.size} selected items</strong>?
+            </p>
+            
+            <div className="modal-checkbox-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', marginBottom: '16px' }}>
+              <label className="custom-checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={deleteVfsOnly} 
+                  onChange={(e) => setDeleteVfsOnly(e.target.checked)}
+                />
+                <span className="checkmark"></span>
+              </label>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Remove folder mapping only (Keep files in TorBox Cloud)
+              </span>
+            </div>
+            
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setShowBatchDeleteModal(false)}>Cancel</button>
+              <button 
+                className="btn btn-danger" 
+                disabled={isControlLoading}
+                onClick={() => handleBatchDelete(!deleteVfsOnly)}
+              >
+                {isControlLoading ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
