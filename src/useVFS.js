@@ -19,6 +19,7 @@ export function useVFS() {
   const [vfs, setVfs] = useState(initialState);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Sync VFS state from storage on mount
   useEffect(() => {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.sync.get(['vfsData'], (syncResult) => {
@@ -60,23 +61,24 @@ export function useVFS() {
     }
   }, []);
 
-  const saveVfs = (newVfs) => {
-    setVfs(newVfs);
+  // Persist VFS state to storage whenever VFS state changes
+  useEffect(() => {
+    if (!isLoaded) return;
     if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.sync.set({ vfsData: newVfs }, () => {
+      chrome.storage.sync.set({ vfsData: vfs }, () => {
         if (chrome.runtime.lastError) {
           console.warn("Storage sync failed, saving locally:", chrome.runtime.lastError.message);
-          chrome.storage.local.set({ vfsData: newVfs });
+          chrome.storage.local.set({ vfsData: vfs });
         }
       });
     } else {
-      localStorage.setItem('vfsData', JSON.stringify(newVfs));
+      localStorage.setItem('vfsData', JSON.stringify(vfs));
     }
-  };
+  }, [vfs, isLoaded]);
 
   const importVfsData = (importedVfs) => {
     if (importedVfs && Array.isArray(importedVfs.folders) && Array.isArray(importedVfs.tags) && importedVfs.itemMappings) {
-      saveVfs({
+      setVfs({
         folders: importedVfs.folders,
         tags: importedVfs.tags,
         itemMappings: importedVfs.itemMappings
@@ -88,29 +90,26 @@ export function useVFS() {
 
   const createFolder = (name, parentId = 'root') => {
     const newFolder = { id: `folder_${Date.now()}`, name, parentId };
-    setVfs(prev => {
-      const next = { ...prev, folders: [...prev.folders, newFolder] };
-      saveVfs(next);
-      return next;
-    });
+    setVfs(prev => ({
+      ...prev,
+      folders: [...prev.folders, newFolder]
+    }));
   };
 
   const renameFolder = (folderId, newName) => {
     if (folderId === 'root') return;
-    setVfs(prev => {
-      const next = { ...prev, folders: prev.folders.map(f => f.id === folderId ? { ...f, name: newName } : f) };
-      saveVfs(next);
-      return next;
-    });
+    setVfs(prev => ({
+      ...prev,
+      folders: prev.folders.map(f => f.id === folderId ? { ...f, name: newName } : f)
+    }));
   };
 
   const createTag = (name, color = '#ffffff') => {
     const newTag = { id: `tag_${Date.now()}`, name, color };
-    setVfs(prev => {
-      const next = { ...prev, tags: [...prev.tags, newTag] };
-      saveVfs(next);
-      return next;
-    });
+    setVfs(prev => ({
+      ...prev,
+      tags: [...prev.tags, newTag]
+    }));
   };
 
   const moveItemToFolder = (itemId, folderId) => {
@@ -121,9 +120,7 @@ export function useVFS() {
         folderId,
         placedAt: Date.now()
       };
-      const next = { ...prev, itemMappings: newMappings };
-      saveVfs(next);
-      return next;
+      return { ...prev, itemMappings: newMappings };
     });
   };
 
@@ -135,9 +132,7 @@ export function useVFS() {
         itemData.tags = [...itemData.tags, tagId];
       }
       newMappings[itemId] = itemData;
-      const next = { ...prev, itemMappings: newMappings };
-      saveVfs(next);
-      return next;
+      return { ...prev, itemMappings: newMappings };
     });
   };
 
@@ -146,9 +141,7 @@ export function useVFS() {
       const newMappings = { ...prev.itemMappings };
       if (newMappings[itemId]) {
         newMappings[itemId].tags = newMappings[itemId].tags.filter(t => t !== tagId);
-        const next = { ...prev, itemMappings: newMappings };
-        saveVfs(next);
-        return next;
+        return { ...prev, itemMappings: newMappings };
       }
       return prev;
     });
@@ -188,9 +181,7 @@ export function useVFS() {
         return f;
       });
 
-      const next = { ...prev, folders: newFolders, itemMappings: newMappings };
-      saveVfs(next);
-      return next;
+      return { ...prev, folders: newFolders, itemMappings: newMappings };
     });
   };
 
@@ -207,9 +198,7 @@ export function useVFS() {
         }
         newMappings[itemId] = itemData;
       });
-      const next = { ...prev, tags: [...prev.tags, newTag], itemMappings: newMappings };
-      saveVfs(next);
-      return next;
+      return { ...prev, tags: [...prev.tags, newTag], itemMappings: newMappings };
     });
   };
 
@@ -234,9 +223,7 @@ export function useVFS() {
         }
         return f;
       });
-      const next = { ...prev, folders: newFolders };
-      saveVfs(next);
-      return next;
+      return { ...prev, folders: newFolders };
     });
   };
 
@@ -251,9 +238,7 @@ export function useVFS() {
           placedAt: Date.now()
         };
       });
-      const next = { ...prev, itemMappings: newMappings };
-      saveVfs(next);
-      return next;
+      return { ...prev, itemMappings: newMappings };
     });
   };
 
@@ -267,9 +252,7 @@ export function useVFS() {
         }
         newMappings[itemId] = itemData;
       });
-      const next = { ...prev, itemMappings: newMappings };
-      saveVfs(next);
-      return next;
+      return { ...prev, itemMappings: newMappings };
     });
   };
 
