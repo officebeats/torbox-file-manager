@@ -15,6 +15,8 @@ While TorBox is exceptional at downloading and caching files, its official dashb
 
 This extension solves this problem by introducing a **fully local, zero-cost Virtual File System (VFS)**. It maps your flat TorBox download list into a structured file-explorer experience, complete with drag-and-drop folder organization, search, sorting, tag management, and contextual file actions.
 
+![TorBox Manager Main View](docs/images/manager_main.png)
+
 ---
 
 ## ✨ Features
@@ -37,11 +39,17 @@ Hover over any file row to access contextual shortcuts matching TorBox's native 
 * **Download Torrent (Globe icon)**: Exports the original `.torrent` file.
 * **Cloud Export (Circle up icon)**: Quick shortcut to trigger external cloud uploads (Google Drive, OneDrive).
 
+![Quick Actions on Hover](docs/images/manager_main_hover.png)
+
 ### 🔄 Multi-File Torrent Directories
 Torrents containing multiple files are treated as directories. Double-clicking them navigates into an expanded list, allowing you to stream, copy links, or download individual files inside the torrent package.
 
+![Expanded Torrent Subfiles Navigation](docs/images/torrent_folder_expanded.png)
+
 ### 📥 One-Click Dashboard Switcher
 If you visit `https://torbox.app/dashboard`, the extension automatically injects a sleek, floating glassmorphism **"Open TorBox Manager"** button. One click switches your view into your organized local extension dashboard!
+
+![Floating open manager button](docs/images/injected_button.png)
 
 ---
 
