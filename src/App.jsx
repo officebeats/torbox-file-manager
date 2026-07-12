@@ -94,10 +94,14 @@ function App() {
         }
       })
     } else {
-      const localKey = localStorage.getItem('torboxApiKey')
-      if (localKey) {
-        setApiKey(localKey)
-        setHasKey(true)
+      try {
+        const localKey = localStorage.getItem('torboxApiKey')
+        if (localKey) {
+          setApiKey(localKey)
+          setHasKey(true)
+        }
+      } catch (e) {
+        console.warn('localStorage read failed:', e)
       }
     }
   }, [])
@@ -169,7 +173,11 @@ function App() {
         })
       })
     } else {
-      localStorage.setItem('torboxApiKey', apiKey.trim())
+      try {
+        localStorage.setItem('torboxApiKey', apiKey.trim())
+      } catch (e) {
+        console.warn('localStorage write failed:', e)
+      }
       setHasKey(true)
     }
   }

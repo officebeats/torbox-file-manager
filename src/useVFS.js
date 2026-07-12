@@ -44,7 +44,12 @@ export function useVFS() {
         }
       });
     } else {
-      const localData = localStorage.getItem('vfsData');
+      let localData = null;
+      try {
+        localData = localStorage.getItem('vfsData');
+      } catch (e) {
+        console.warn('localStorage read failed:', e);
+      }
       if (localData) {
         try {
           const parsed = JSON.parse(localData);
@@ -72,7 +77,11 @@ export function useVFS() {
         }
       });
     } else {
-      localStorage.setItem('vfsData', JSON.stringify(vfs));
+      try {
+        localStorage.setItem('vfsData', JSON.stringify(vfs));
+      } catch (e) {
+        console.warn('localStorage write failed:', e);
+      }
     }
   }, [vfs, isLoaded]);
 
@@ -126,24 +135,35 @@ export function useVFS() {
 
   const addTagToItem = (itemId, tagId) => {
     setVfs(prev => {
-      const newMappings = { ...prev.itemMappings };
-      const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-      if (!itemData.tags.includes(tagId)) {
-        itemData.tags = [...itemData.tags, tagId];
-      }
-      newMappings[itemId] = itemData;
-      return { ...prev, itemMappings: newMappings };
+      const itemData = prev.itemMappings[itemId] || { folderId: 'root', tags: [] };
+      if (itemData.tags.includes(tagId)) return prev;
+      return {
+        ...prev,
+        itemMappings: {
+          ...prev.itemMappings,
+          [itemId]: {
+            ...itemData,
+            tags: [...itemData.tags, tagId]
+          }
+        }
+      };
     });
   };
 
   const removeTagFromItem = (itemId, tagId) => {
     setVfs(prev => {
-      const newMappings = { ...prev.itemMappings };
-      if (newMappings[itemId]) {
-        newMappings[itemId].tags = newMappings[itemId].tags.filter(t => t !== tagId);
-        return { ...prev, itemMappings: newMappings };
-      }
-      return prev;
+      const itemData = prev.itemMappings[itemId];
+      if (!itemData || !itemData.tags.includes(tagId)) return prev;
+      return {
+        ...prev,
+        itemMappings: {
+          ...prev.itemMappings,
+          [itemId]: {
+            ...itemData,
+            tags: itemData.tags.filter(t => t !== tagId)
+          }
+        }
+      };
     });
   };
 
@@ -192,11 +212,11 @@ export function useVFS() {
     setVfs(prev => {
       const newMappings = { ...prev.itemMappings };
       itemIds.forEach(itemId => {
-        const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-        if (!itemData.tags.includes(tagId)) {
-          itemData.tags = [...itemData.tags, tagId];
-        }
-        newMappings[itemId] = itemData;
+        const itemData = prev.itemMappings[itemId] || { folderId: 'root', tags: [] };
+        newMappings[itemId] = {
+          ...itemData,
+          tags: itemData.tags.includes(tagId) ? itemData.tags : [...itemData.tags, tagId]
+        };
       });
       return { ...prev, tags: [...prev.tags, newTag], itemMappings: newMappings };
     });
@@ -231,7 +251,7 @@ export function useVFS() {
     setVfs(prev => {
       const newMappings = { ...prev.itemMappings };
       Object.entries(mappings).forEach(([itemId, folderId]) => {
-        const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
+        const itemData = prev.itemMappings[itemId] || { folderId: 'root', tags: [] };
         newMappings[itemId] = {
           ...itemData,
           folderId,
@@ -246,11 +266,11 @@ export function useVFS() {
     setVfs(prev => {
       const newMappings = { ...prev.itemMappings };
       itemIds.forEach(itemId => {
-        const itemData = newMappings[itemId] || { folderId: 'root', tags: [] };
-        if (!itemData.tags.includes(tagId)) {
-          itemData.tags = [...itemData.tags, tagId];
-        }
-        newMappings[itemId] = itemData;
+        const itemData = prev.itemMappings[itemId] || { folderId: 'root', tags: [] };
+        newMappings[itemId] = {
+          ...itemData,
+          tags: itemData.tags.includes(tagId) ? itemData.tags : [...itemData.tags, tagId]
+        };
       });
       return { ...prev, itemMappings: newMappings };
     });
