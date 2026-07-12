@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "TorBox File Manager",
+  "version": "1.0.0",
+  "description": "Robust file manager for TorBox",
+  "action": {
+    "default_title": "Open File Manager"
+  },
+  "options_page": "index.html",
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.torbox.app/*",
+    "https://torbox.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://torbox.app/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
