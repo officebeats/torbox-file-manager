@@ -37,12 +37,8 @@ Hover over any file row to access responsive contextual quick-actions:
 * **Direct Download (Downward tray icon)**: Automatically requests a temporary CDN link and redirects to begin the download.
 * **Download as ZIP (Folder ZIP icon)**: Zips multi-file torrents and downloads the folder bundle (only shown for multi-file torrent folders).
 * **Copy Link (Chain link icon)**: Copies a permanent, redirecting CDN link to your clipboard.
-* **Download Torrent (Globe icon)**: Exports the original `.torrent` file.
-* **Cloud Export (Circle up icon)**: Quick shortcut to trigger external cloud uploads (Google Drive, OneDrive).
 
 To prevent clutter, file metadata is automatically faded out on hover, providing clean space for the larger, labeled buttons with zero visual clipping!
-
-![Quick Actions on Hover](docs/images/manager_main_hover.png)
 
 ### 🔄 Multi-File Torrent Directories
 Torrents containing multiple files are treated as directories. Double-clicking them navigates into an expanded list, allowing you to stream, copy links, or download individual files inside the torrent package.
